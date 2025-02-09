@@ -1,0 +1,3 @@
+2025-02-09 20:53:05.789 INFO app.go:141 [main]: -> demo <-
+2025-02-09 20:53:05.790 INFO app.go:142 [main]: demo running at 2025-02-09 20:53:05
+2025-02-09 20:53:05.790 INFO app.go:98 [main]: app exit successfully

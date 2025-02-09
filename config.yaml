@@ -1,0 +1,8 @@
+app: 
+  name: demo
+httpserver:
+  port: 8080
+  maxAvailablePort: 8081
+log:
+  path: ./log
+  maxSize: 100

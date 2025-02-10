@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -31,13 +32,14 @@ type RootComponent struct {
 	conf  *ConfContext
 	param map[string]any
 
-	componentHolder map[string]*ComponentMeta[Component]
-	logInitFunc     LogInitFuncInterface
-	configLoaders   []ConfigLoader
-	logger          Logger
-	runningWg       sync.WaitGroup
-	exitNotifyCh    chan string
-	exitFinishedCh  chan struct{}
+	componentHolder   map[string]*ComponentMeta[Component]
+	setupComponentErr []error
+	logInitFunc       LogInitFuncInterface
+	configLoaders     []ConfigLoader
+	logger            Logger
+	runningWg         sync.WaitGroup
+	exitNotifyCh      chan string
+	exitFinishedCh    chan struct{}
 }
 
 func App(name string) *RootComponent {
@@ -73,6 +75,11 @@ func (r *RootComponent) Start() (exitCode int) {
 	if err != nil {
 		r.logger.Error("failed to initialize app context:", err.Error())
 		exitCode = 3
+		return
+	}
+	if len(r.setupComponentErr) > 0 {
+		r.logger.Error("failed to setup component:", errors.Join(r.setupComponentErr...))
+		exitCode = 4
 		return
 	}
 	err = r.initComponents()
@@ -119,7 +126,7 @@ func (r *RootComponent) WithConfigLoader(loader ConfigLoader) {
 	r.configLoaders = append(r.configLoaders, loader)
 }
 
-func (r *RootComponent) WithComponent(name string, componentMeta *ComponentMeta[Component]) {
+func (r *RootComponent) WithComponentMeta(name string, componentMeta *ComponentMeta[Component]) {
 	err := componentMeta.preInit(name)
 	if err != nil {
 		r.logger.Error(err)
@@ -129,6 +136,26 @@ func (r *RootComponent) WithComponent(name string, componentMeta *ComponentMeta[
 	componentDupCheck[componentMeta.ID()] = componentDupCheck[componentMeta.ID()] + 1
 	t := string(componentMeta.componentType)
 	singletonComponentDupCheck[t] = singletonComponentDupCheck[t] + 1
+}
+
+func (r *RootComponent) WithComponent(component Component, options ...ComponentMetaOption[Component]) {
+	r.WithNamedComponent("", component)
+}
+
+func (r *RootComponent) WithNamedComponent(name string, component Component, options ...ComponentMetaOption[Component]) {
+	typeName, types, instancies, fields, err := resolveDependencies(component)
+	if err != nil {
+		r.setupComponentErr = append(r.setupComponentErr, err)
+		return
+	}
+	options = append(options, WithDependencyTypes[Component](types...),
+		WithDependencies[Component](instancies...),
+		withFieldInfo[Component](fields))
+	meta := NewComponentMeta(ComponentType(typeName), component, options...)
+	if name == "" {
+		name = typeName
+	}
+	r.WithComponentMeta(name, meta)
 }
 
 func (r *RootComponent) printStart() {

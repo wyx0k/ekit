@@ -10,9 +10,9 @@ type ExitStatus struct {
 }
 
 type AppContext struct {
-	// id - component
+	// id - meta
 	components map[string]*ComponentMeta[Component]
-	// type - component
+	// type - meta
 	singletonComponents map[string]*ComponentMeta[Component]
 	componentMetas      map[Component]*ComponentMeta[Component]
 	param               map[string]any
@@ -71,12 +71,11 @@ func (a *AppContext) Meta(c Component) *ComponentMeta[Component] {
 	return a.componentMetas[c]
 }
 
-func (a *AppContext) GetComponent(componentType ComponentType, name string) Component {
+func (a *AppContext) GetComponentMeta(componentType ComponentType, name string) *ComponentMeta[Component] {
 	id := getComponentID(componentType, name)
-	return a.GetComponentById(id)
+	return a.GetComponentMetaById(id)
 }
-
-func (a *AppContext) GetComponentById(id string) Component {
+func (a *AppContext) GetComponentMetaById(id string) *ComponentMeta[Component] {
 	meta, ok := a.components[id]
 	if !ok {
 		return nil
@@ -92,6 +91,15 @@ func (a *AppContext) GetComponentById(id string) Component {
 	} else if !meta.IsInitialized() {
 		return nil
 	}
+	return meta
+}
+func (a *AppContext) GetComponent(componentType ComponentType, name string) Component {
+	id := getComponentID(componentType, name)
+	return a.GetComponentById(id)
+}
+
+func (a *AppContext) GetComponentById(id string) Component {
+	meta := a.GetComponentMetaById(id)
 	return meta.component
 }
 

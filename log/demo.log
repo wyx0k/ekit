@@ -1,3 +1,22 @@
 2025-02-09 20:53:05.789 INFO app.go:141 [main]: -> demo <-
 2025-02-09 20:53:05.790 INFO app.go:142 [main]: demo running at 2025-02-09 20:53:05
 2025-02-09 20:53:05.790 INFO app.go:98 [main]: app exit successfully
+2025-02-10 21:43:41.870 ERROR app.go:81 [main]: failed to setup component: ekit only support pointer receiver for component: Demo
+2025-02-10 21:44:08.975 ERROR app.go:81 [main]: failed to setup component: ekit only support pointer receiver for component field: Demo.demo
+2025-02-10 21:44:23.850 INFO app_init.go:205 [main]: component Demo:demo init success
+2025-02-10 21:44:23.850 INFO app.go:168 [main]: -> demo <-
+2025-02-10 21:44:23.850 INFO app.go:169 [main]: demo running at 2025-02-10 21:44:23
+2025-02-10 21:44:23.850 INFO app.go:105 [main]: app exit successfully
+2025-02-10 21:46:29.366 INFO app_init.go:205 [main]: component Demo:demo init success
+2025-02-10 21:46:29.366 INFO app.go:168 [main]: -> demo <-
+2025-02-10 21:46:29.366 INFO app.go:169 [main]: demo running at 2025-02-10 21:46:29
+2025-02-10 21:46:29.366 INFO app.go:105 [main]: app exit successfully
+2025-02-10 21:46:59.746 INFO app_init.go:205 [main]: component Demo:demo init success
+2025-02-10 21:46:59.746 INFO app.go:168 [main]: -> demo <-
+2025-02-10 21:46:59.746 INFO app.go:169 [main]: demo running at 2025-02-10 21:46:59
+2025-02-10 21:46:59.747 INFO app.go:105 [main]: app exit successfully
+2025-02-10 21:49:40.706 INFO app_init.go:205 [main]: component Demo:demo init success
+2025-02-10 21:49:40.706 INFO app.go:168 [main]: -> demo <-
+2025-02-10 21:49:40.706 INFO app.go:169 [main]: demo running at 2025-02-10 21:49:40
+2025-02-10 21:49:40.706 INFO app.go:105 [main]: app exit successfully
+2025-02-10 22:01:01.015 ERROR app.go:87 [main]: failed to initialize components: component type[Demo2] required by [Demo:demo] not found

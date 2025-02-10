@@ -41,7 +41,7 @@ func main() {
 }
 
 type Demo struct {
-	Demo2 *Demo2 `ekit:"component"`
+	Demo2 *Demo2 `ekit:"component;required:false"`
 }
 
 func (d Demo) Init(app *app.AppContext, conf *app.ConfContext) error {

@@ -50,7 +50,6 @@ func (r *RootComponent) runAll() error {
 			case syscall.SIGTERM:
 				cancel()
 				break EXIT
-			default:
 			}
 		}
 	}()
@@ -62,6 +61,8 @@ func (r *RootComponent) runAll() error {
 		r.logger.Info("app exit:", msg)
 		if r.gracefulShutdownTimeout == 0 {
 			<-r.exitFinishedCh
+			r.logger.Info("all components exit action executed, waiting finish")
+			<-ctx.Done()
 		} else {
 			select {
 			case <-r.exitFinishedCh:

@@ -3,11 +3,11 @@ package log
 import (
 	"fmt"
 	log "github.com/op/go-logging"
+	"github.com/wyx0k/ekit/app"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"os"
 	"path/filepath"
-	"wyx0k/ekit/app"
 )
 
 var format = log.MustStringFormatter(

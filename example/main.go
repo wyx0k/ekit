@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/wyx0k/ekit/app"
+	"github.com/wyx0k/ekit/log"
 	"os"
 	"path/filepath"
-	"wyx0k/ekit/app"
-	"wyx0k/ekit/log"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -27,11 +29,13 @@ func main() {
 			}
 			demo := app.App(appName)
 
-			demo.WithTitle("-> demo <-")
+			//demo.WithTitle("-> demo <-")
 			demo.WithParam("configPath", configFile)
 			demo.WithConfigLoader(app.NewFileConfigLoader(configFile))
 			demo.WithLogger(log.WithSimpleLogger())
 			demo.WithComponent(&Demo{})
+			demo.WithComponent(&Demo2{A: "demo2 -----> ok"})
+			demo.WithComponent(&RunnableDemo{})
 			os.Exit(demo.Start())
 		},
 	}
@@ -40,12 +44,49 @@ func main() {
 
 }
 
+type RunnableDemo struct {
+	app    *app.AppContext
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
+func (r *RunnableDemo) Init(app *app.AppContext, conf *app.ConfContext) error {
+	r.app = app
+	r.ctx, r.cancel = context.WithCancel(context.Background())
+	app.MainLog.Info("runnable demo init......")
+	return nil
+}
+
+func (r RunnableDemo) Close() error {
+	r.app.MainLog.Info("runnable demo close......")
+	return nil
+}
+
+func (r RunnableDemo) Run(app *app.AppContext, conf *app.ConfContext) error {
+	for {
+		app.MainLog.Info("runnable demo running......")
+		select {
+		case <-r.ctx.Done():
+			app.MainLog.Info("runnable demo stop")
+			return nil
+		}
+	}
+	return nil
+}
+
+func (r RunnableDemo) OnExit() error {
+	time.Sleep(3 * time.Second)
+	r.cancel()
+	return nil
+}
+
 type Demo struct {
 	Demo2 *Demo2 `ekit:"component;required:false"`
 }
 
 func (d Demo) Init(app *app.AppContext, conf *app.ConfContext) error {
-
+	app.MainLog.Info(d.Demo2.A)
+	app.MainLog.Info(app.GetParam("configPath"))
 	return nil
 }
 
@@ -54,6 +95,7 @@ func (d Demo) Close() error {
 }
 
 type Demo2 struct {
+	A string
 }
 
 func (d Demo2) Init(app *app.AppContext, conf *app.ConfContext) error {

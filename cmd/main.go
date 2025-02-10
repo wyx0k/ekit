@@ -31,7 +31,7 @@ func main() {
 			demo.WithParam("configPath", configFile)
 			demo.WithConfigLoader(app.NewFileConfigLoader(configFile))
 			demo.WithLogger(log.WithSimpleLogger())
-			demo.WithComponent(&Demo{}, app.WithDependencyTypes[app.Component]("Demo2"))
+			demo.WithComponent(&Demo{})
 			os.Exit(demo.Start())
 		},
 	}
@@ -41,7 +41,7 @@ func main() {
 }
 
 type Demo struct {
-	demo *Demo2 `ekit:"component"`
+	Demo2 *Demo2 `ekit:"component"`
 }
 
 func (d Demo) Init(app *app.AppContext, conf *app.ConfContext) error {

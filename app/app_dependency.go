@@ -3,6 +3,8 @@ package app
 import (
 	"errors"
 	"reflect"
+	"strconv"
+	"strings"
 )
 
 type fieldInfo struct {
@@ -12,6 +14,7 @@ type fieldInfo struct {
 	IsDependAll bool
 	DependType  ComponentType
 	DependIds   []string
+	Required    bool
 }
 
 func resolveDependencies(component Component) (typeName string, types []ComponentType, instances []string, fields map[string]fieldInfo, err error) {
@@ -50,6 +53,24 @@ func resolveDependencies(component Component) (typeName string, types []Componen
 					FieldName: field.Name,
 					FieldKind: fieldKind,
 					FieldType: fieldType,
+				}
+				first := fi.FieldName[0:1]
+				if first != strings.ToUpper(first) {
+					err = errors.New("variables must be visible to the outside when using ekit component inject: " + typeName + "." + field.Name)
+					return
+				}
+				if requiredTag, ok := FindTag(tags, TagRequired); ok {
+					if len(requiredTag.Values) > 0 {
+						b, err2 := strconv.ParseBool(requiredTag.Values[0])
+						if err2 != nil {
+							b = true
+						}
+						fi.Required = b
+					} else {
+						fi.Required = true
+					}
+				} else {
+					fi.Required = true
 				}
 				switch fieldKind {
 				case reflect.Struct:

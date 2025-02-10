@@ -4,5 +4,5 @@ httpserver:
   port: 8080
   maxAvailablePort: 8081
 log:
-  path: ./log
+  path: ./bin/log
   maxSize: 100

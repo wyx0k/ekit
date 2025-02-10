@@ -148,8 +148,8 @@ func (r *RootComponent) WithNamedComponent(name string, component Component, opt
 		r.setupComponentErr = append(r.setupComponentErr, err)
 		return
 	}
-	options = append(options, WithDependencyTypes[Component](types...),
-		WithDependencies[Component](instancies...),
+	options = append(options, withDependencyTypes[Component](types...),
+		withDependencies[Component](instancies...),
 		withFieldInfo[Component](fields))
 	meta := NewComponentMeta(ComponentType(typeName), component, options...)
 	if name == "" {

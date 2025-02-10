@@ -60,7 +60,7 @@ func TestComponentLazyInitDependencies(t *testing.T) {
 	c := NewFakeComponent("C")
 	d := NewFakeComponent("D")
 	ma := NewComponentMeta(A, a, WithDependencyTypes[Component](B))
-	mb := NewComponentMeta(B, b, WithDependencyTypes[Component](C), WithLazyInit)
+	mb := NewComponentMeta(B, b, WithDependencyTypes[Component](C), WithLazyInit[Component])
 	mc := NewComponentMeta(C, c, WithDependencyTypes[Component](D))
 	md := NewComponentMeta(D, d)
 	app.WithComponentMeta("a", ma)

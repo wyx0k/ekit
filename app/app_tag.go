@@ -12,6 +12,7 @@ const (
 	TagEkitValuesSep = ","
 
 	TagComponent = "component"
+	TagRequired  = "required"
 )
 
 type EkitTagStr string

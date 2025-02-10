@@ -167,8 +167,8 @@ func (ci *ComponentInitializer) InitializeOne(inMeta *ComponentMeta[Component]) 
 	types := inMeta.DependencyTypes()
 	for _, t := range types {
 		metas := ci.componentGroupByType[t]
-		if len(metas) == 0 {
-			return fmt.Errorf("component type[%s] required by [%s] not found", t, inMeta.ID())
+		if len(metas) == 0 && inMeta.IsAdditionalDepends(t) {
+			return fmt.Errorf("component type[%s] required by [%s] but found 0 candidates", t, inMeta.ID())
 		}
 		for _, meta := range metas {
 			m := ci.getMetaById(meta.ID())
@@ -233,7 +233,7 @@ func (ci *ComponentInitializer) dependencyInject(inMeta *ComponentMeta[Component
 					var components []Component
 					componentMap := map[string]Component{}
 					if diInfo.IsDependAll {
-						if metas, ok := ci.componentGroupByType[string(diInfo.DependType)]; ok {
+						if metas, ok2 := ci.componentGroupByType[string(diInfo.DependType)]; ok2 {
 							for _, meta := range metas {
 								components = append(components, meta.component)
 								componentMap[meta.componentName] = meta.component
@@ -248,6 +248,9 @@ func (ci *ComponentInitializer) dependencyInject(inMeta *ComponentMeta[Component
 						}
 					}
 					if len(components) == 0 {
+						if diInfo.Required {
+							return errors.New(t.Name() + "." + diInfo.FieldName + " can not set, found 0 candidates, but field is required, or you can add \"required:false\" on field tag to avoid this")
+						}
 						continue
 					}
 					switch diInfo.FieldKind {

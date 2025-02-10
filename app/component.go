@@ -25,6 +25,7 @@ type ComponentMeta[T Component] struct {
 	componentType     ComponentType
 	dependencyTypes   []string
 	dependencies      []string
+	additionalDepends map[string]struct{}
 	fieldInfo         map[string]fieldInfo
 	singleton         bool
 	primary           bool
@@ -56,6 +57,24 @@ func WithLazyInit[T Component](meta *ComponentMeta[T]) {
 
 func WithDependencyTypes[T Component](types ...ComponentType) ComponentMetaOption[T] {
 	return func(meta *ComponentMeta[T]) {
+		for _, d := range types {
+			meta.dependencyTypes = append(meta.dependencyTypes, string(d))
+			meta.additionalDepends[string(d)] = struct{}{}
+		}
+	}
+}
+
+func WithDependencies[T Component](dependencies ...string) ComponentMetaOption[T] {
+	return func(meta *ComponentMeta[T]) {
+		for _, d := range dependencies {
+			meta.dependencies = append(meta.dependencies, d)
+			meta.additionalDepends[d] = struct{}{}
+		}
+	}
+}
+
+func withDependencyTypes[T Component](types ...ComponentType) ComponentMetaOption[T] {
+	return func(meta *ComponentMeta[T]) {
 		var lst []string
 		for _, d := range types {
 			lst = append(lst, string(d))
@@ -65,13 +84,12 @@ func WithDependencyTypes[T Component](types ...ComponentType) ComponentMetaOptio
 	}
 }
 
-func WithDependencies[T Component](dependencies ...string) ComponentMetaOption[T] {
+func withDependencies[T Component](dependencies ...string) ComponentMetaOption[T] {
 	return func(meta *ComponentMeta[T]) {
 		lst := append(meta.dependencies, dependencies...)
 		meta.dependencies = lst
 	}
 }
-
 func withFieldInfo[T Component](fieldMap map[string]fieldInfo) ComponentMetaOption[T] {
 	return func(meta *ComponentMeta[T]) {
 		meta.fieldInfo = fieldMap
@@ -79,10 +97,10 @@ func withFieldInfo[T Component](fieldMap map[string]fieldInfo) ComponentMetaOpti
 }
 
 func NewComponentMeta[T Component](componentType ComponentType, component T, options ...ComponentMetaOption[T]) *ComponentMeta[T] {
-
 	cm := &ComponentMeta[T]{
-		componentType: componentType,
-		component:     component,
+		componentType:     componentType,
+		component:         component,
+		additionalDepends: map[string]struct{}{},
 	}
 	for _, option := range options {
 		option(cm)
@@ -138,6 +156,10 @@ func (cm *ComponentMeta[T]) IsLazyInit() bool {
 }
 func (cm *ComponentMeta[T]) IsInitialized() bool {
 	return cm._initialized
+}
+func (cm *ComponentMeta[T]) IsAdditionalDepends(depend string) bool {
+	_, ok := cm.additionalDepends[depend]
+	return ok
 }
 func (cm *ComponentMeta[T]) IsLazyInitialized() bool {
 	return cm._lazy_initialized

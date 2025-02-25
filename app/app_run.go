@@ -66,6 +66,8 @@ func (r *RootComponent) runAll() error {
 		} else {
 			select {
 			case <-r.exitFinishedCh:
+				r.logger.Info("all components exit action executed, waiting finish")
+				<-ctx.Done()
 			case <-time.After(r.gracefulShutdownTimeout):
 			}
 		}

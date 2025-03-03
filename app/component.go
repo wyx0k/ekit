@@ -6,6 +6,14 @@ import (
 	"strings"
 )
 
+type DependenciesExtendComponent interface {
+	EkitDependencies() (types []ComponentType, instances []string)
+}
+
+type ComponentProvider interface {
+	EkitComponents() []Component
+}
+
 // will block main go routine
 type RunnableComponent interface {
 	Component

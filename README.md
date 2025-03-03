@@ -168,3 +168,66 @@ You can change default slogan like this:
 demo := app.App("demo")
 demo.WithTitle("-> demo <-")
 ```
+
+### Service
+You can provide http service by implement some interface now.
+For example, We implement gin server to serve an api like this.
+
+```go
+// GinRouter register service to gin engine
+type GinRouter interface {
+	Register(*gin.RouterGroup) error
+}
+
+// GinRouteResolver service adaptor for gin
+type GinRouteResolver struct {
+}
+
+func (g GinRouteResolver) Resolve(engine *gin.Engine, router app.Component) error {
+	group := engine.Group("/")
+	if ginRoute, ok := router.(GinRouter); ok {
+		return ginRoute.Register(group)
+	}
+	return errors.New("gin route resolver only support gin route")
+}
+
+func NewGinHttpService() app.Component {
+	engine := gin.New()
+	resolver := GinRouteResolver{}
+	svc := service.NewHttpService(engine, resolver, func(engine *gin.Engine, conf *service.HttpServiceConf) {
+		gin.SetMode(conf.Mode)
+		engine.Use(gin.Recovery())
+		engine.Use(gin.Logger())
+	})
+	svc.AddRoute(&route.DemoRoute{})
+	return svc
+}
+
+```
+
+Then we could implement interface `GinRouter` and provide a service.
+
+```go
+type DemoRoute struct {
+	app.SimpleComponent
+}
+
+func (d DemoRoute) Register(group *gin.RouterGroup) error {
+	group.GET("ok", func(c *gin.Context) {
+		c.JSON(200, gin.H{"ok": true})
+	})
+	return nil
+}
+
+```
+
+Finally, We start the server
+
+```go
+func main() {
+    demo := app.App("demo")
+    demo.WithLogger(log.WithSimpleLogger())
+    demo.WithComponent(NewGinHttpService())
+    os.Exit(demo.Start())
+}
+```

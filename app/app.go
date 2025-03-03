@@ -143,13 +143,30 @@ func (r *RootComponent) WithComponent(component Component, options ...ComponentM
 }
 
 func (r *RootComponent) WithNamedComponent(name string, component Component, options ...ComponentMetaOption[Component]) {
-	typeName, types, instancies, fields, err := resolveDependencies(component)
+	typeName, types, instances, fields, err := resolveDependencies(component)
 	if err != nil {
 		r.setupComponentErr = append(r.setupComponentErr, err)
 		return
 	}
+	if dependenciesExtendComponent, ok := component.(DependenciesExtendComponent); ok {
+		ts, its := dependenciesExtendComponent.EkitDependencies()
+		if len(ts) > 0 {
+			types = append(types, ts...)
+		}
+		if len(its) > 0 {
+			instances = append(instances, its...)
+		}
+	}
+	if componentProvider, ok := component.(ComponentProvider); ok {
+		components := componentProvider.EkitComponents()
+		if len(components) > 0 {
+			for _, c := range components {
+				r.WithComponent(c)
+			}
+		}
+	}
 	options = append(options, withDependencyTypes[Component](types...),
-		withDependencies[Component](instancies...),
+		withDependencies[Component](instances...),
 		withFieldInfo[Component](fields))
 	meta := NewComponentMeta(ComponentType(typeName), component, options...)
 	if name == "" {

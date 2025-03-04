@@ -1,4 +1,4 @@
-package service
+package router
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/wyx0k/ekit/app"
 )
 
-type HttpServiceConf struct {
+type HttpRouterConf struct {
 	ServiceName  string `yaml:"serviceName"`
 	Host         string `yaml:"host"`
 	Port         int    `yaml:"port"`
@@ -19,10 +19,14 @@ type HttpServiceConf struct {
 	Mode         string `yaml:"mode"`
 }
 
-type ServiceOpt[H http.Handler] func(engine H, conf *HttpServiceConf)
+type ServiceOpt[H http.Handler] func(engine H, conf *HttpRouterConf)
 
-type HttpService[H http.Handler, R HttpServiceRouterResolver[H]] struct {
-	conf     *HttpServiceConf
+type HttpRouterResolver[T http.Handler] interface {
+	Resolve(engine T, route app.Component) error
+}
+
+type HttpRouter[H http.Handler, R HttpRouterResolver[H]] struct {
+	conf     *HttpRouterConf
 	engine   H
 	server   *http.Server
 	options  []ServiceOpt[H]
@@ -31,8 +35,8 @@ type HttpService[H http.Handler, R HttpServiceRouterResolver[H]] struct {
 	resolver R
 }
 
-func NewHttpService[H http.Handler, R HttpServiceRouterResolver[H]](engine H, resolver R, opts ...ServiceOpt[H]) *HttpService[H, R] {
-	c := &HttpService[H, R]{
+func NewHttpRouter[H http.Handler, R HttpRouterResolver[H]](engine H, resolver R, opts ...ServiceOpt[H]) *HttpRouter[H, R] {
+	c := &HttpRouter[H, R]{
 		options:  opts,
 		engine:   engine,
 		resolver: resolver,
@@ -41,9 +45,9 @@ func NewHttpService[H http.Handler, R HttpServiceRouterResolver[H]](engine H, re
 	return c
 }
 
-func (h *HttpService[H, R]) Init(app *app.AppContext, conf *app.ConfContext) error {
-	c := HttpServiceConf{}
-	err := conf.Value("service").Scan(&c)
+func (h *HttpRouter[H, R]) Init(app *app.AppContext, conf *app.ConfContext) error {
+	c := HttpRouterConf{}
+	err := conf.Value("router").Scan(&c)
 	if err != nil {
 		return err
 	}
@@ -65,14 +69,20 @@ func (h *HttpService[H, R]) Init(app *app.AppContext, conf *app.ConfContext) err
 	for _, opt := range h.options {
 		opt(h.engine, h.conf)
 	}
+	for _, route := range h.routes {
+		err = h.resolver.Resolve(h.engine, route)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func (h *HttpService[H, R]) Close() error {
+func (h *HttpRouter[H, R]) Close() error {
 	return nil
 }
 
-func (h *HttpService[H, R]) Run(app *app.AppContext, conf *app.ConfContext) error {
+func (h *HttpRouter[H, R]) Run(app *app.AppContext, conf *app.ConfContext) error {
 	port, err := detectPort(h.conf.Port, h.conf.MaxRetryPort, app.MainLog)
 	if err != nil {
 		return errors.New("failed to listen port: " + err.Error())
@@ -81,7 +91,13 @@ func (h *HttpService[H, R]) Run(app *app.AppContext, conf *app.ConfContext) erro
 		Addr:    fmt.Sprintf("%s:%d", h.conf.Host, port),
 		Handler: h.engine,
 	}
-	app.MainLog.Infof("service[%s] listen %d", h.conf.ServiceName, port)
+	if h.conf.ServiceName != "" {
+		app.MainLog.Infof("[%s] listen %d", h.conf.ServiceName, port)
+	} else {
+		app.MainLog.Infof("listen %d", port)
+
+	}
+
 	// 服务连接
 	if err2 := h.server.ListenAndServe(); err2 != nil && !errors.Is(err2, http.ErrServerClosed) {
 		return err2
@@ -89,13 +105,21 @@ func (h *HttpService[H, R]) Run(app *app.AppContext, conf *app.ConfContext) erro
 	return nil
 }
 
-func (h *HttpService[H, R]) OnExit() error {
+func (h *HttpRouter[H, R]) OnExit() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := h.server.Shutdown(ctx); err != nil {
 		return errors.New("Server Shutdown:" + err.Error())
 	}
 	return nil
+}
+
+func (h *HttpRouter[T, R]) AddRoute(router app.Component) error {
+	h.routes = append(h.routes, router)
+	return nil
+}
+func (h *HttpRouter[T, R]) EkitComponents() []app.Component {
+	return h.routes
 }
 
 func detectPort(port int, maxAvailablePort int, logger app.Logger) (int, error) {
@@ -110,7 +134,7 @@ func detectPort(port int, maxAvailablePort int, logger app.Logger) (int, error) 
 			conn.Close()
 			currentPort++
 			if currentPort > maxAvailablePort {
-				logger.Errorf("port [%d] is conflict", port, maxAvailablePort)
+				logger.Errorf("all available port is using, max range:[%d-%d]", port, maxAvailablePort)
 				break
 			}
 			continue

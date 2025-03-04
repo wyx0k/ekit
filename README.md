@@ -174,12 +174,12 @@ You can provide http service by implement some interface now.
 For example, We implement gin server to serve an api like this.
 
 ```go
-// GinRouter register service to gin engine
+// GinRouter register router to gin engine
 type GinRouter interface {
 	Register(*gin.RouterGroup) error
 }
 
-// GinRouteResolver service adaptor for gin
+// GinRouteResolver router adaptor for gin
 type GinRouteResolver struct {
 }
 

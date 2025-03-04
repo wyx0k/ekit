@@ -69,7 +69,8 @@ func WithSimpleLogger() app.LogInitFunc {
 		backendFormatter := log.NewBackendFormatter(backend, format)
 		log.SetBackend(backendFormatter)
 		sl.logger = log.MustGetLogger(module(appName))
-		sl.logger.ExtraCalldepth = 1
+		sl.logger.ExtraCalldepth = 2
+		_logger = &sl
 		return &sl, nil
 	}
 }

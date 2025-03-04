@@ -36,7 +36,7 @@ type TracedLogger interface {
 	WithSpanId(span_id string)
 }
 
-type defaultOutputLog struct {
+type DefaultOutputLog struct {
 	component string
 	format    string
 	start     string
@@ -45,7 +45,7 @@ type defaultOutputLog struct {
 func withDefaultOutputLog(_ *ConfContext) LogInitFunc {
 	log.SetFlags(log.Ldate | log.Ltime)
 	return func(_ string, conf *ConfContext) (Logger, error) {
-		return &defaultOutputLog{
+		return &DefaultOutputLog{
 			component: "main",
 			format:    "%s %s %s %s",
 			start:     "=>",
@@ -53,61 +53,61 @@ func withDefaultOutputLog(_ *ConfContext) LogInitFunc {
 	}
 }
 
-func (s *defaultOutputLog) WithComponent(name string) Logger {
-	return &defaultOutputLog{
+func (s *DefaultOutputLog) WithComponent(name string) Logger {
+	return &DefaultOutputLog{
 		component: name,
 		format:    "%s %s %s %s",
 		start:     "=>",
 	}
 }
 
-func (s *defaultOutputLog) print(level string, args ...any) {
+func (s *DefaultOutputLog) print(level string, args ...any) {
 	args = append([]any{s.component, level, s.start}, args...)
 	log.Println(args...)
 }
 
-func (s *defaultOutputLog) printf(level, format string, args ...any) {
+func (s *DefaultOutputLog) printf(level, format string, args ...any) {
 	log.Printf(fmt.Sprintf(s.format, s.component, level, s.start, format), args...)
 }
 
-func (s *defaultOutputLog) Debug(args ...any) {
+func (s *DefaultOutputLog) Debug(args ...any) {
 	s.print("DEBUG", args...)
 }
 
-func (s *defaultOutputLog) Debugf(format string, args ...any) {
+func (s *DefaultOutputLog) Debugf(format string, args ...any) {
 	s.printf("DEBUG", format, args...)
 }
 
-func (s *defaultOutputLog) Info(args ...any) {
+func (s *DefaultOutputLog) Info(args ...any) {
 	s.print("INFO", args...)
 }
 
-func (s *defaultOutputLog) Infof(format string, args ...any) {
+func (s *DefaultOutputLog) Infof(format string, args ...any) {
 	s.printf("INFO", format, args...)
 }
 
-func (s *defaultOutputLog) Warn(args ...any) {
+func (s *DefaultOutputLog) Warn(args ...any) {
 	s.print("WARN", args...)
 }
 
-func (s *defaultOutputLog) Warnf(format string, args ...any) {
+func (s *DefaultOutputLog) Warnf(format string, args ...any) {
 	s.printf("WARN", format, args...)
 }
 
-func (s *defaultOutputLog) Error(args ...any) {
+func (s *DefaultOutputLog) Error(args ...any) {
 	s.print("ERROR", args...)
 }
 
-func (s *defaultOutputLog) Errorf(format string, args ...any) {
+func (s *DefaultOutputLog) Errorf(format string, args ...any) {
 	s.printf("ERROR", format, args...)
 }
 
-func (s *defaultOutputLog) Fatal(args ...any) {
+func (s *DefaultOutputLog) Fatal(args ...any) {
 	s.print("FATAL", args...)
 	os.Exit(7)
 }
 
-func (s *defaultOutputLog) Fatalf(format string, args ...any) {
+func (s *DefaultOutputLog) Fatalf(format string, args ...any) {
 	s.printf("FATAL", format, args...)
 	os.Exit(7)
 }

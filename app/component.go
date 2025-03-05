@@ -180,7 +180,7 @@ func (cm *ComponentMeta[T]) init(app *AppContext, conf *ConfContext) error {
 	}
 	err := cm.component.Init(app, conf)
 	if err != nil {
-		return err
+		return errors.New("[" + cm.componentID + "] " + err.Error())
 	}
 	cm._initialized = true
 	return nil

@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const MainLogger = "main"
+const MainLogger = "ekit"
 
 func (r *RootComponent) initConf() error {
 	if len(r.configLoaders) == 0 {
@@ -55,7 +55,7 @@ func (r *RootComponent) initComponents() error {
 			}
 		}
 	}
-	ci, err := newComponentInitializer(r.componentHolder, r.app, r.conf)
+	ci, err := newComponentInitializer(r.componentHolder, r.app, r.conf, r.afterHandlers, r.beforeHandlers)
 	if err != nil {
 		return err
 	}
@@ -88,6 +88,10 @@ type ComponentInitializer struct {
 	componentGraph        map[string]*ComponentMeta[Component]
 	componentGroupByType  map[string][]*ComponentMeta[Component]
 	componentPrimaryGraph map[string]*ComponentMeta[Component]
+	afterHandlers         map[string][]AfterInitHandler
+	beforeHandlers        map[string][]BeforeInitHandler
+	afterCount            map[string]int
+	beforeCount           map[string]int
 	componentStatus       map[string]struct{}
 	app                   *AppContext
 	conf                  *ConfContext
@@ -96,20 +100,41 @@ type ComponentInitializer struct {
 	logger                Logger
 }
 
-func newComponentInitializer(graph map[string]*ComponentMeta[Component], app *AppContext, conf *ConfContext) (*ComponentInitializer, error) {
+func newComponentInitializer(graph map[string]*ComponentMeta[Component], app *AppContext, conf *ConfContext, afterHandlers map[string][]AfterInitHandler, beforeHandlers map[string][]BeforeInitHandler) (*ComponentInitializer, error) {
 	m := map[string][]*ComponentMeta[Component]{}
 	primary := map[string]*ComponentMeta[Component]{}
+	afterCount := map[string]int{}
+	beforeCount := map[string]int{}
 	for _, c := range graph {
-		if _, ok := m[string(c.Type())]; ok {
-			m[string(c.Type())] = append(m[string(c.Type())], c)
+		// update count
+		ct := string(c.Type())
+		if _, exist := afterHandlers[ct]; exist {
+			if count, ok := afterCount[ct]; ok {
+				afterCount[ct] = count + 1
+			} else {
+				afterCount[ct] = 1
+			}
+
+		}
+		if _, exist := beforeHandlers[ct]; exist {
+			if count, ok := beforeCount[ct]; ok {
+				beforeCount[ct] = count + 1
+			} else {
+				beforeCount[ct] = 1
+			}
+		}
+
+		// find if duplicated
+		if _, ok := m[ct]; ok {
+			m[ct] = append(m[ct], c)
 		} else {
-			m[string(c.Type())] = []*ComponentMeta[Component]{c}
+			m[ct] = []*ComponentMeta[Component]{c}
 		}
 		if c.IsPrimary() {
-			if meta, exist := primary[string(c.Type())]; exist {
-				return nil, errors.New("duplicated primary componet " + string(c.Type()) + ": " + c.componentID + ", " + meta.componentID)
+			if meta, exist := primary[ct]; exist {
+				return nil, errors.New("duplicated primary component " + ct + ": " + c.componentID + ", " + meta.componentID)
 			}
-			primary[string(c.Type())] = c
+			primary[ct] = c
 		}
 	}
 	ci := &ComponentInitializer{
@@ -117,6 +142,10 @@ func newComponentInitializer(graph map[string]*ComponentMeta[Component], app *Ap
 		componentGroupByType:  m,
 		componentPrimaryGraph: primary,
 		componentStatus:       map[string]struct{}{},
+		afterHandlers:         afterHandlers,
+		beforeHandlers:        beforeHandlers,
+		afterCount:            afterCount,
+		beforeCount:           beforeCount,
 		app:                   app,
 		conf:                  conf,
 		logger:                app.MainLog,
@@ -192,6 +221,9 @@ func (ci *ComponentInitializer) InitializeOne(inMeta *ComponentMeta[Component]) 
 			return err
 		}
 	}
+	// before handler
+	ct := string(inMeta.componentType)
+	ci.handleBefore(ct)
 	// dependency inject
 	err := ci.dependencyInject(inMeta)
 	if err != nil {
@@ -208,6 +240,8 @@ func (ci *ComponentInitializer) InitializeOne(inMeta *ComponentMeta[Component]) 
 		ci.logger.Info("component", inMeta.ID(), "init success")
 	}
 	ci.app.addComponent(inMeta)
+	// after handler
+	ci.handleAfter(ct, inMeta.component)
 	return nil
 }
 
@@ -282,6 +316,40 @@ func (ci *ComponentInitializer) dependencyInject(inMeta *ComponentMeta[Component
 						}
 					}
 				}
+			}
+		}
+	}
+	return nil
+}
+
+func (ci *ComponentInitializer) handleBefore(ct string) error {
+	if handlers, exist := ci.beforeHandlers[ct]; exist {
+		if count, ok := ci.beforeCount[ct]; ok {
+			newCount := count - 1
+			ci.beforeCount[ct] = newCount
+			if newCount <= 0 {
+				ci.logger.Info("before_init:", ct)
+				for _, handler := range handlers {
+					handler(ci.app, ci.conf)
+				}
+				delete(ci.beforeCount, ct)
+			}
+		}
+	}
+	return nil
+}
+
+func (ci *ComponentInitializer) handleAfter(ct string, component Component) error {
+	if handlers, exist := ci.afterHandlers[ct]; exist {
+		if count, ok := ci.afterCount[ct]; ok {
+			newCount := count - 1
+			ci.afterCount[ct] = newCount
+			if newCount <= 0 {
+				ci.logger.Info("after_init:", ct)
+				for _, handler := range handlers {
+					handler(ci.app, ci.conf, component)
+				}
+				delete(ci.afterCount, ct)
 			}
 		}
 	}

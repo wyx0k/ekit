@@ -33,6 +33,8 @@ type RootComponent struct {
 	param map[string]any
 
 	componentHolder   map[string]*ComponentMeta[Component]
+	afterHandlers     map[string][]AfterInitHandler
+	beforeHandlers    map[string][]BeforeInitHandler
 	setupComponentErr []error
 	logInitFunc       LogInitFuncInterface
 	configLoaders     []ConfigLoader
@@ -50,6 +52,8 @@ func App(name string) *RootComponent {
 		appName:                 name,
 		gracefulShutdownTimeout: 0,
 		componentHolder:         map[string]*ComponentMeta[Component]{},
+		beforeHandlers:          map[string][]BeforeInitHandler{},
+		afterHandlers:           map[string][]AfterInitHandler{},
 		param:                   map[string]any{},
 		exitNotifyCh:            make(chan string),
 		exitFinishedCh:          make(chan struct{}),

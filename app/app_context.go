@@ -84,7 +84,7 @@ func (a *AppContext) GetComponentMetaById(id string) *ComponentMeta[Component] {
 		if !meta.IsLazyInitialized() {
 			err := meta.lazyinit(a, a.conf)
 			if err != nil {
-				//todo log
+				a.MainLog.Warnf("fail to lazy init component meta: %v", err)
 			}
 			a.initSequence = append(a.initSequence, meta.ID())
 		}
@@ -112,7 +112,7 @@ func (a *AppContext) GetSingletonComponent(componentType string) Component {
 		if meta.IsLazyInit() {
 			err := meta.lazyinit(a, a.conf)
 			if err != nil {
-				//todo log
+				a.MainLog.Warnf("fail to lazy init component meta: %v", err)
 			}
 			a.initSequence = append(a.initSequence, meta.ID())
 		} else {

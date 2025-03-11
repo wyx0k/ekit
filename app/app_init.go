@@ -39,7 +39,7 @@ func (r *RootComponent) initLog() error {
 }
 
 func (r *RootComponent) initAppContext() error {
-	app := newAppContext(r.conf, r.exitNotifyCh, r.exitFinishedCh, r.logger, r.param)
+	app := newAppContext(r.rootCtx, r.conf, r.exitNotifyCh, r.exitFinishedCh, r.logger, r.param)
 	r.app = app
 	return nil
 }

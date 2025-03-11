@@ -57,12 +57,12 @@ func (r *RunnableDemo) Init(app *app.AppContext, conf *app.ConfContext) error {
 	return nil
 }
 
-func (r RunnableDemo) Close() error {
+func (r *RunnableDemo) Close() error {
 	r.app.MainLog.Info("runnable demo close......")
 	return nil
 }
 
-func (r RunnableDemo) Run(app *app.AppContext, conf *app.ConfContext) error {
+func (r *RunnableDemo) Run(app *app.AppContext, conf *app.ConfContext) error {
 	for {
 		app.MainLog.Info("runnable demo running......")
 		select {
@@ -74,7 +74,7 @@ func (r RunnableDemo) Run(app *app.AppContext, conf *app.ConfContext) error {
 	return nil
 }
 
-func (r RunnableDemo) OnExit() error {
+func (r *RunnableDemo) OnExit() error {
 	time.Sleep(3 * time.Second)
 	r.cancel()
 	return nil

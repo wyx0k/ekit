@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"sync"
 )
@@ -10,6 +11,7 @@ type ExitStatus struct {
 }
 
 type AppContext struct {
+	rootCtx context.Context
 	// id - meta
 	components map[string]*ComponentMeta[Component]
 	// type - meta
@@ -24,11 +26,13 @@ type AppContext struct {
 	exitErrCh           chan<- error
 	exitErrs            []error
 	exitActionWg        sync.WaitGroup
+	exited              bool
 }
 
-func newAppContext(conf *ConfContext, exitNotifyCh chan<- string, exitFinishedCh chan<- struct{}, logger Logger, param map[string]any) *AppContext {
+func newAppContext(rootCtx context.Context, conf *ConfContext, exitNotifyCh chan<- string, exitFinishedCh chan<- struct{}, logger Logger, param map[string]any) *AppContext {
 	exitErrCh := make(chan error)
 	ac := &AppContext{
+		rootCtx:             rootCtx,
 		components:          map[string]*ComponentMeta[Component]{},
 		singletonComponents: map[string]*ComponentMeta[Component]{},
 		componentMetas:      map[Component]*ComponentMeta[Component]{},
@@ -122,6 +126,9 @@ func (a *AppContext) GetSingletonComponent(componentType string) Component {
 	return meta.component
 }
 func (a *AppContext) Exit(msg ...string) {
+	if a.exited {
+		return
+	}
 	for _, c := range a.components {
 		if rc, ok := c.component.(RunnableComponent); ok {
 			a.exitActionWg.Add(1)
@@ -150,4 +157,8 @@ func (a *AppContext) Exit(msg ...string) {
 	} else {
 		a.exitNotifyCh <- ""
 	}
+}
+
+func (a *AppContext) setExited() {
+	a.exited = true
 }

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -42,10 +43,14 @@ type RootComponent struct {
 	runningWg         sync.WaitGroup
 	exitNotifyCh      chan string
 	exitFinishedCh    chan struct{}
+	initializedCtx    context.Context
+	initializedCancel context.CancelFunc
+	initialized       bool
+	rootCtx           context.Context
+	rootCtxCancel     context.CancelFunc
 }
 
-func App(name string) *RootComponent {
-
+func App(name string, ctx ...context.Context) *RootComponent {
 	now := time.Now()
 	root := &RootComponent{
 		startTime:               &now,
@@ -58,10 +63,28 @@ func App(name string) *RootComponent {
 		exitNotifyCh:            make(chan string),
 		exitFinishedCh:          make(chan struct{}),
 	}
+	root.initializedCtx, root.initializedCancel = context.WithCancel(context.Background())
+	if len(ctx) > 1 {
+		fmt.Println("context must not be more than one")
+		os.Exit(1)
+	}
+	if len(ctx) == 0 {
+		root.rootCtx, root.rootCtxCancel = context.WithCancel(context.Background())
+	} else {
+		root.rootCtx, root.rootCtxCancel = context.WithCancel(ctx[0])
+	}
+
+	go func() {
+		select {
+		case <-root.initializedCtx.Done():
+			root.initialized = true
+		}
+	}()
 	return root
 }
 
 func (r *RootComponent) Start() (exitCode int) {
+	defer r.rootCtxCancel()
 	r.printStart()
 	err := r.initConf()
 	if err != nil {
@@ -92,6 +115,7 @@ func (r *RootComponent) Start() (exitCode int) {
 		exitCode = 4
 		return
 	}
+	r.initializedCancel()
 	now := time.Now()
 	r.runningTime = &now
 	r.printTitle()
@@ -112,6 +136,19 @@ func (r *RootComponent) Start() (exitCode int) {
 
 func (r *RootComponent) Exit(msg ...string) {
 	r.app.Exit(msg...)
+}
+
+func (r *RootComponent) WaitUntilInitialized() {
+	if r.initialized {
+		return
+	}
+	select {
+	case <-r.initializedCtx.Done():
+	}
+}
+
+func (r *RootComponent) WaitUntilExit() {
+	<-r.rootCtx.Done()
 }
 
 func (r *RootComponent) WithTitle(title string) {

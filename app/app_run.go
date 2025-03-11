@@ -33,6 +33,7 @@ func (r *RootComponent) runAll() error {
 			idx++
 		}
 	}
+
 	go func() {
 		r.runningWg.Wait()
 		cancel()
@@ -58,7 +59,11 @@ func (r *RootComponent) runAll() error {
 		if !ok {
 			panic("system has been closed before")
 		}
-		r.logger.Info("app exit:", msg)
+		if msg != "" {
+			r.logger.Info("app exiting:", msg)
+		} else {
+			r.logger.Info("app exiting")
+		}
 		if r.gracefulShutdownTimeout == 0 {
 			<-r.exitFinishedCh
 			r.logger.Info("all components exit action executed, waiting finish")
@@ -79,5 +84,6 @@ func (r *RootComponent) runAll() error {
 			r.logger.Error(errors.Join(r.app.exitErrs...))
 		}
 	}
+	r.app.setExited()
 	return errors.Join(errs...)
 }

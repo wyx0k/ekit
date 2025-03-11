@@ -110,6 +110,10 @@ func (r *RootComponent) Start() (exitCode int) {
 	return
 }
 
+func (r *RootComponent) Exit(msg ...string) {
+	r.app.Exit(msg...)
+}
+
 func (r *RootComponent) WithTitle(title string) {
 	r.title = title
 }
